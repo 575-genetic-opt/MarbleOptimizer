@@ -5,18 +5,28 @@ import sys
 sys.setrecursionlimit(200)
 gene_per_section = 2
 
+maximum_length = 0
+corresponding_cost = 0
+
 num_div_x = 10
 num_div_y = 10
 num_div_z = 10
 
-maximum_length = 0
-corresponding_cost = 0
+dz = .1  # HEIGHT OF PIECES (METERS)
+dx = .1  # X LENGTH OF PIECES (METERS)
+dy = .1  # Y LENGTH OF PIECES (METERS)
 
-parts = [{'cost': 1., 'length': 10., 'cool': 90, 'in': 'top', 'out': 'bottom'},
-         {'cost': 3., 'length': 7.5, 'cool': 50, 'in': 'top', 'out': 1},
-         {'cost': 1., 'length': 10., 'cool': 70, 'in': 1, 'out': 3},
-         {'cost': 3., 'length': 7.5, 'cool': 50, 'in': 1, 'out': 4},
-         {'cost': 3., 'length': 7.5, 'cool': 50, 'in': 1, 'out': 'bottom'}]
+v_start = .1  # STARTING VELOCITY OF MARBLE (M/S)
+
+mass = 0.00127  # MASS OF A MARBLE (KG)
+loss_per_length = 0.01  # percent of energy lost due to normal track use
+g = 9.81  # GRAVITY (M/S^2)
+
+parts = [{'cost': 1., 'length': dz, 'loss': .1*dz, 'cool': 90, 'in': 'top', 'out': 'bottom'},
+         {'cost': 3., 'length': (dz/2 + dy/2)*.8, 'loss': .1*(dz/2 + dy/2)*.8, 'cool': 50, 'in': 'top', 'out': 1},
+         {'cost': 1., 'length': dy, 'loss': .1*dy, 'cool': 70, 'in': 1, 'out': 3},
+         {'cost': 3., 'length': (dy/2 + dx/2)*.8, 'loss': .1*(dy/2 + dx/2)*.8, 'cool': 50, 'in': 1, 'out': 4},
+         {'cost': 3., 'length': (dy/2 + dz/2)*.8, 'loss': .1*(dy/2 + dx/2)*.8, 'cool': 50, 'in': 1, 'out': 'bottom'}]
 
 
 def calc_length(design):
@@ -24,27 +34,35 @@ def calc_length(design):
     # RECORD MAX POSSIBLE PATH
     max_path = 0
 
-    # LOOP OVER PIECES ON BOTTOM
+    # LIST OF GLOBAL PIECE NUMBERS IN BEST DESIGN
+    max_loc_list = []
+    max_part_list = []
+    max_rot_list = []
+
+    # LOOP OVER PIECES ON TOP
     for i in range(0, num_div_x*num_div_y*gene_per_section, gene_per_section):
 
-        length = 0
+        # SET STARTING ENERGIES
+        up = num_div_y * dy * mass * g         # POTENTIAL ENERGY
+        uk = .5 * mass * math.pow(v_start, 2)  # KINETIC ENERGY
 
-        # IF THERE IS A PIECE PRESENT AT THIS LOCATION
-        if design[i] > 0:
+        # SET STARTING DESIGN VALUES
+        loc_history = []
+        part_history = []
+        rot_history = []
 
-            # GET LOCATION ID OF PIECE
-            piece_number = int(i / gene_per_section) + 1
+        # GET LOCATION ID OF PIECE
+        piece_number = int(i / gene_per_section) + 1 + int(num_div_x*num_div_y*(num_div_z-1))
 
-            inlet, outlet, location = inlet_outlet(design, piece_number)
-
-            if outlet is not None and outlet > 0:
-                path_history = []
-                length = traverse_length(design, piece_number, path_history)
+        length = traverse_length(design, piece_number, loc_history, part_history, rot_history, uk, up)
 
         if length > max_path:
             max_path = length
+            max_loc_list = loc_history
+            max_part_list = part_history
+            max_rot_list = rot_history
 
-    return max_path
+    return max_path, max_loc_list, max_part_list, max_rot_list
 
 
 def locate_piece(piece_number):
@@ -210,65 +228,67 @@ def inlet_outlet(design, piece_number):
     if in_neighbor:
 
         in_gene_index = (in_neighbor - 1) * gene_per_section
+        in_piece_type = parts[design[in_gene_index] - 1]
 
-        if design[in_gene_index] > 0:
+        in_n_outlet = in_piece_type['out']
+        if type(in_piece_type['out']) == int:
+            in_n_outlet = (in_piece_type['out'] + design[(in_neighbor - 1) * gene_per_section + 1]) % 4
+            if in_n_outlet == 0:
+                in_n_outlet = 4
 
-            in_piece_type = parts[design[in_gene_index] - 1]
-
-            in_n_outlet = in_piece_type['out']
-            if type(in_piece_type['out']) == int:
-                in_n_outlet = (in_piece_type['out'] + design[(in_neighbor - 1) * gene_per_section + 1]) % 4
-                if in_n_outlet == 0:
-                    in_n_outlet = 4
-
-            if inlet == 'top':
-                if in_n_outlet != 'bottom':
-                    in_neighbor = -1
-            elif in_n_outlet == 'bottom' or math.fabs(inlet - in_n_outlet) != 2:
+        if inlet == 'top':
+            if in_n_outlet != 'bottom':
                 in_neighbor = -1
-
-        else:
-
-            in_neighbor = None
+        elif in_n_outlet == 'bottom' or math.fabs(inlet - in_n_outlet) != 2:
+            in_neighbor = -1
 
     if out_neighbor:
 
         out_gene_index = (out_neighbor - 1) * gene_per_section
+        out_piece_type = parts[design[out_gene_index] - 1]
 
-        if design[out_gene_index] > 0:
+        out_n_inlet = out_piece_type['in']
+        if type(out_piece_type['in']) == int:
+            out_n_inlet = (out_piece_type['in'] + design[(out_neighbor - 1) * gene_per_section + 1]) % 4
+            if out_n_inlet == 0:
+                out_n_inlet = 4
 
-            out_piece_type = parts[design[out_gene_index] - 1]
-
-            out_n_inlet = out_piece_type['in']
-            if type(out_piece_type['in']) == int:
-                out_n_inlet = (out_piece_type['in'] + design[(out_neighbor - 1) * gene_per_section + 1]) % 4
-                if out_n_inlet == 0:
-                    out_n_inlet = 4
-
-            if outlet == 'bottom':
-                if out_n_inlet != 'top':
-                    out_neighbor = -1
-            elif out_n_inlet == 'top' or math.fabs(outlet - out_n_inlet) != 2:
+        if outlet == 'bottom':
+            if out_n_inlet != 'top':
                 out_neighbor = -1
-
-        else:
-
-            out_neighbor = None
+        elif out_n_inlet == 'top' or math.fabs(outlet - out_n_inlet) != 2:
+            out_neighbor = -1
 
     return in_neighbor, out_neighbor, location
 
 
-def traverse_length(design, piece_number, path_history):
+def traverse_length(design, piece_number, path_history, part_history, rot_history, uk, up):
 
     piece_gene_index = (piece_number - 1) * gene_per_section
     piece_type = parts[design[piece_gene_index] - 1]
+
     length = piece_type['length']
+    friction_loss = piece_type['loss']*uk
 
     in_neighbor, out_neighbor, location = inlet_outlet(design, piece_number)
 
-    if in_neighbor is not None and in_neighbor > 0 and location not in path_history:
+    # Subtract friction loss from kinetic energy
+    uk -= friction_loss
+
+    # Subtract potential energy losses
+    if len(path_history) > 0:
+        uk -= (location[2] - path_history[-1][2])*dz*g*mass
+        up += (location[2] - path_history[-1][2])*g*mass
+
+    if out_neighbor > 0 and location not in path_history and uk > 0:
         path_history.append(location)
-        length += traverse_length(design, in_neighbor, path_history)
+        part_history.append(design[piece_gene_index] - 1)
+        rot_history.append(design[piece_gene_index])
+        length += traverse_length(design, out_neighbor, path_history, part_history, rot_history, uk, up)
+    else:
+        path_history.append(location)
+        part_history.append(design[piece_gene_index] - 1)
+        rot_history.append(design[piece_gene_index])
 
     return length
 
@@ -277,46 +297,46 @@ def calc_cost(design):
 
     cost_sum = 0
 
-    for i in range(0, len(design), gene_per_section):
-        if design[i] > 0:
-            part_num = design[i] - 1
-            cost_sum += parts[part_num]['cost']
+    for part_num in design:
+        cost_sum += parts[part_num]['cost']
 
     return cost_sum
 
 
+def solve_track(design):
+
+    max_path, max_loc_list, max_part_list, max_rot_list = calc_length(design)
+
+    cost = calc_cost(max_part_list)
+
+    return max_path, cost, max_part_list, max_loc_list, max_rot_list
+
+
 if __name__ == '__main__':
 
+    max_len = 0
 
-    gene_per_section = 2
+    mt_length = None
+    mt_cost = None
+    mp_list = None
+    mp_loc = None
+    mr_list = None
 
-    num_div_x = 3
-    num_div_y = 3
-    num_div_z = 3
+    for _ in xrange(1000):
+        gen_design = [random.randrange(1, 5, 1) for r in range(num_div_x*num_div_y*num_div_z*gene_per_section)]
 
-    maximum_length = 0
-    corresponding_cost = 0
+        t_length, t_cost, p_list, p_loc, r_list = solve_track(gen_design)
 
-    for i in range(1000000):
-        if i % 10000 == 0:
-            print(i)
+        if t_length > maximum_length:
+            maximum_length = t_length
+            mt_length = t_length
+            mt_cost = t_cost
+            mp_list = p_list
+            mp_loc = p_loc
+            mr_list = r_list
 
-        gen_design = [random.randrange(0, 5, 1) for r in range(num_div_x*num_div_y*num_div_z*gene_per_section)]
-
-        # try:
-        #     length_of_track = calc_length(gen_design)
-        # except:
-        #     length_of_track = 0
-
-        length_of_track = calc_length(gen_design)
-
-        if length_of_track >= maximum_length:
-            maximum_length = length_of_track
-            corresponding_cost = calc_cost(gen_design)
-    # bad_design = [4, 4, 1, 4, 1, 1, 1, 1, 4, 1, 4, 4, 0, 3, 4, 2, 4, 3, 4, 0, 4, 2, 0, 4, 3, 1, 2, 2, 0, 2, 1, 4, 2,
-    #               3, 0, 3, 0, 1, 2, 2, 4, 4, 1, 0, 3, 4, 3, 0, 0, 1, 1, 4, 4, 3]
-    #
-    # len = calc_length(bad_design)
-
-    print(corresponding_cost)
-    print(maximum_length)
+    print mt_length
+    print mt_cost
+    print mp_list
+    print mp_loc
+    print mr_list
