@@ -16,10 +16,10 @@ dz = .1                  # HEIGHT OF PIECES (METERS)
 dx = .1                  # X LENGTH OF PIECES (METERS)
 dy = .1                  # Y LENGTH OF PIECES (METERS)
 
-v_start = .05             # STARTING VELOCITY OF MARBLE (M/S)
+v_start = .1             # STARTING VELOCITY OF MARBLE (M/S)
 
 mass = 0.00127           # MASS OF A MARBLE (KG)
-lpl = 5                  # percent of energy lost due to normal track use
+lpl = .01                  # percent of energy lost due to normal track use
 g = 9.81                 # GRAVITY (M/S^2)
 
 parts = [{'cost': 1., 'length': dz, 'loss': lpl*dz, 'cool': 90, 'e1': 'top', 'e2': 'bottom'},
@@ -38,6 +38,7 @@ def calc_length(design):
     max_loc_list = []
     max_part_list = []
     max_rot_list = []
+    max_en_his = []
 
     # LOOP OVER PIECES ON TOP
     for i in range(0, num_div_x*num_div_y*gene_per_section, gene_per_section):
@@ -130,12 +131,18 @@ def inlet_outlet(design, g_piece_id, in_direction):
     out_neighbor = None
     in_neighbor = None
 
-    if outlet == 'bottom' or inlet == 'bottom':
+    if outlet == 'bottom':
         if floor > 1:
             out_neighbor = g_piece_id - num_div_x * num_div_y
-    if inlet == 'top' or outlet == 'top':
+    elif outlet == 'top':
+        if floor < num_div_z:
+            out_neighbor = g_piece_id + num_div_x * num_div_y
+    if inlet == 'top':
         if floor < num_div_z:
             in_neighbor = g_piece_id + num_div_x * num_div_y
+    elif inlet == 'bottom':
+        if floor > 1:
+            in_neighbor = g_piece_id - num_div_x * num_div_y
 
     if row == 1:  # ON BOTTOM FACE
         if col == 1:  # ON LEFT FACE
@@ -367,9 +374,6 @@ def traverse_length(design, g_piece_id, path_his, part_his, rot_his, en_his, in_
     if len(path_his) > 0:
         uk -= (location[2] - path_his[-1][2]) * dz * g * mass
         up += (location[2] - path_his[-1][2]) * dz * g * mass
-
-    if uk < 0:
-        print 'lost energy'
 
     if out_neighbor > 0 and location not in path_his and uk > 0:
         path_his.append(location)
