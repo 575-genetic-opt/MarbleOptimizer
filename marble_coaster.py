@@ -16,17 +16,17 @@ dz = .1                  # HEIGHT OF PIECES (METERS)
 dx = .1                  # X LENGTH OF PIECES (METERS)
 dy = .1                  # Y LENGTH OF PIECES (METERS)
 
-v_start = .1             # STARTING VELOCITY OF MARBLE (M/S)
+v_start = .05             # STARTING VELOCITY OF MARBLE (M/S)
 
 mass = 0.00127           # MASS OF A MARBLE (KG)
-loss_per_length = 0.01   # percent of energy lost due to normal track use
+lpl = 5                  # percent of energy lost due to normal track use
 g = 9.81                 # GRAVITY (M/S^2)
 
-parts = [{'cost': 1., 'length': dz, 'loss': .1*dz, 'cool': 90, 'e1': 'top', 'e2': 'bottom'},
-         {'cost': 3., 'length': (dz/2 + dy/2)*.8, 'loss': .1*(dz/2 + dy/2)*.8, 'cool': 50, 'e1': 'top', 'e2': 1},
-         {'cost': 1., 'length': dy, 'loss': .1*dy, 'cool': 70, 'e1': 1, 'e2': 3},
-         {'cost': 3., 'length': (dy/2 + dx/2)*.8, 'loss': .1*(dy/2 + dx/2)*.8, 'cool': 50, 'e1': 1, 'e2': 4},
-         {'cost': 3., 'length': (dy/2 + dz/2)*.8, 'loss': .1*(dy/2 + dx/2)*.8, 'cool': 50, 'e1': 1, 'e2': 'bottom'}]
+parts = [{'cost': 1., 'length': dz, 'loss': lpl*dz, 'cool': 90, 'e1': 'top', 'e2': 'bottom'},
+         {'cost': 3., 'length': (dz/2 + dy/2)*.8, 'loss': lpl*(dz/2 + dy/2)*.8, 'cool': 50, 'e1': 'top', 'e2': 1},
+         {'cost': 1., 'length': dy, 'loss': lpl*dy, 'cool': 70, 'e1': 1, 'e2': 3},
+         {'cost': 3., 'length': (dy/2 + dx/2)*.8, 'loss': lpl*(dy/2 + dx/2)*.8, 'cool': 50, 'e1': 1, 'e2': 4},
+         {'cost': 3., 'length': (dy/2 + dz/2)*.8, 'loss': lpl*(dy/2 + dx/2)*.8, 'cool': 50, 'e1': 1, 'e2': 'bottom'}]
 
 
 def calc_length(design):
@@ -48,22 +48,24 @@ def calc_length(design):
             uk = .5 * mass * math.pow(v_start, 2)  # KINETIC ENERGY
 
             # SET STARTING DESIGN VALUES
-            loc_history = []
-            part_history = []
-            rot_history = []
+            loc_his = []
+            part_his = []
+            rot_his = []
+            en_his = []
 
             # GET LOCATION ID OF PIECE
             piece_number = int(i / gene_per_section) + 1 + int(num_div_x*num_div_y*(num_div_z-1))
 
-            length = traverse_length(design, piece_number, loc_history, part_history, rot_history, in_dir, uk, up)
+            length = traverse_length(design, piece_number, loc_his, part_his, rot_his, en_his, in_dir, uk, up)
 
             if length > max_path:
                 max_path = length
-                max_loc_list = loc_history
-                max_part_list = part_history
-                max_rot_list = rot_history
+                max_loc_list = loc_his
+                max_part_list = part_his
+                max_rot_list = rot_his
+                max_en_his = en_his
 
-    return max_path, max_loc_list, max_part_list, max_rot_list
+    return max_path, max_loc_list, max_part_list, max_rot_list, max_en_his
 
 
 def locate_piece(piece_number):
@@ -346,7 +348,7 @@ def inlet_outlet(design, g_piece_id, in_direction):
     return in_neighbor, out_neighbor, location, in_direction
 
 
-def traverse_length(design, g_piece_id, path_history, part_history, rot_history, in_direction, uk, up):
+def traverse_length(design, g_piece_id, path_his, part_his, rot_his, en_his, in_dir, uk, up):
 
     piece_gene_index = (g_piece_id - 1) * gene_per_section
     piece_rot = design[piece_gene_index + 1]
@@ -356,25 +358,30 @@ def traverse_length(design, g_piece_id, path_history, part_history, rot_history,
     length = piece_type['length']
     friction_loss = piece_type['loss']*uk
 
-    in_neighbor, out_neighbor, location, in_direction = inlet_outlet(design, g_piece_id, in_direction)
+    in_neighbor, out_neighbor, location, in_dir = inlet_outlet(design, g_piece_id, in_dir)
 
     # Subtract friction loss from kinetic energy
     uk -= friction_loss
 
     # Subtract potential energy losses
-    if len(path_history) > 0:
-        uk -= (location[2] - path_history[-1][2])*dz*g*mass
-        up += (location[2] - path_history[-1][2])*dz*g*mass
+    if len(path_his) > 0:
+        uk -= (location[2] - path_his[-1][2]) * dz * g * mass
+        up += (location[2] - path_his[-1][2]) * dz * g * mass
 
-    if out_neighbor > 0 and location not in path_history and uk > 0:
-        path_history.append(location)
-        part_history.append(piece_num)
-        rot_history.append(piece_rot)
-        length += traverse_length(design, out_neighbor, path_history, part_history, rot_history, in_direction, uk, up)
+    if uk < 0:
+        print 'lost energy'
+
+    if out_neighbor > 0 and location not in path_his and uk > 0:
+        path_his.append(location)
+        part_his.append(piece_num)
+        rot_his.append(piece_rot)
+        en_his.append(uk)
+        length += traverse_length(design, out_neighbor, path_his, part_his, rot_his, en_his, in_dir, uk, up)
     else:
-        path_history.append(location)
-        part_history.append(piece_num)
-        rot_history.append(piece_rot)
+        path_his.append(location)
+        part_his.append(piece_num)
+        rot_his.append(piece_rot)
+        en_his.append(uk)
 
     return length
 
@@ -391,11 +398,11 @@ def calc_cost(design):
 
 def solve_track(design):
 
-    max_path, max_loc_list, max_part_list, max_rot_list = calc_length(design)
+    max_path, max_loc_list, max_part_list, max_rot_list, en_his = calc_length(design)
 
     cost = calc_cost(max_part_list)
 
-    return max_path, cost, max_part_list, max_loc_list, max_rot_list
+    return max_path, cost, max_part_list, max_loc_list, max_rot_list, en_his
 
 
 if __name__ == '__main__':
@@ -407,11 +414,12 @@ if __name__ == '__main__':
     mp_list = None
     mp_loc = None
     mr_list = None
+    me_list = None
 
     for _ in xrange(1000):
         gen_design = [random.randrange(1, 5, 1) for r in range(num_div_x*num_div_y*num_div_z*gene_per_section)]
 
-        t_length, t_cost, p_list, p_loc, r_list = solve_track(gen_design)
+        t_length, t_cost, p_list, p_loc, r_list, e_list = solve_track(gen_design)
 
         if t_length > maximum_length:
             maximum_length = t_length
@@ -420,6 +428,11 @@ if __name__ == '__main__':
             mp_list = p_list
             mp_loc = p_loc
             mr_list = r_list
+            me_list = e_list
+
+    speeds = []
+    for e in me_list:
+        speeds.append(math.sqrt(e/(.5*mass)))
 
     print mt_length
     print mt_cost
@@ -427,6 +440,5 @@ if __name__ == '__main__':
     print mp_loc
     print mr_list
     print len(mp_list)
-
-# TODO need way to let marble enter either e1 or e2
-# TODO need way to track which side marble entered
+    print me_list
+    print speeds
