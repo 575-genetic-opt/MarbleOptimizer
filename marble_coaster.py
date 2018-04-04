@@ -19,7 +19,7 @@ dy = .1                  # Y LENGTH OF PIECES (METERS)
 v_start = .1             # STARTING VELOCITY OF MARBLE (M/S)
 
 mass = 0.00127           # MASS OF A MARBLE (KG)
-lpl = .01                  # percent of energy lost due to normal track use
+lpl = .01                # percent of energy lost due to normal track use
 g = 9.81                 # GRAVITY (M/S^2)
 
 parts = [{'cost': 1., 'length': dz, 'loss': lpl*dz, 'cool': 90, 'e1': 'top', 'e2': 'bottom'},
@@ -128,8 +128,8 @@ def inlet_outlet(design, g_piece_id, in_direction):
     row, col, floor = locate_piece(g_piece_id)
     location = (row, col, floor)
 
-    out_neighbor = None
-    in_neighbor = None
+    out_neighbor = 0
+    in_neighbor = 0
 
     if outlet == 'bottom':
         if floor > 1:
@@ -254,7 +254,7 @@ def inlet_outlet(design, g_piece_id, in_direction):
                 in_neighbor = g_piece_id - 1
 
     # CHECK IF NEIGHBORS HAVE ALIGNING FACES
-    if in_neighbor:
+    if in_neighbor > 0:
 
         in_gene_index = (in_neighbor - 1) * gene_per_section
         in_piece_rot = design[in_gene_index + 1]
@@ -278,27 +278,27 @@ def inlet_outlet(design, g_piece_id, in_direction):
 
         if inlet == 'top':
             if in_n_e1 != 'bottom':
-                in_neighbor_1 = -1
+                in_neighbor_1 = 0
             if in_n_e2 != 'bottom':
-                in_neighbor_2 = -1
+                in_neighbor_2 = 0
         elif inlet == 'bottom':
             if in_n_e1 != 'top':
-                in_neighbor_1 = -1
+                in_neighbor_1 = 0
             if in_n_e2 != 'top':
-                in_neighbor_2 = -1
+                in_neighbor_2 = 0
         else:
             if type(in_n_e1) is int:
                 if math.fabs(inlet - in_n_e1) != 2:
-                    in_neighbor_1 = -1
+                    in_neighbor_1 = 0
             else:
                 in_neighbor_1 = -1
             if type(in_n_e2) is int:
                 if math.fabs(inlet - in_n_e2) != 2:
-                    in_neighbor_2 = -1
+                    in_neighbor_2 = 0
             else:
-                in_neighbor_2 = -1
+                in_neighbor_2 = 0
 
-        if in_neighbor_2 < 0:
+        if in_neighbor_2 == 0:
             in_neighbor = in_neighbor_1
 
     in_direction = 'e1'
@@ -327,25 +327,25 @@ def inlet_outlet(design, g_piece_id, in_direction):
 
         if outlet == 'bottom':
             if out_n_e1 != 'top':
-                out_neighbor_1 = -1
+                out_neighbor_1 = 0
             if out_n_e2 != 'top':
-                out_neighbor_2 = -1
+                out_neighbor_2 = 0
         elif outlet == 'top':
             if out_n_e1 != 'bottom':
-                out_neighbor_1 = -1
+                out_neighbor_1 = 0
             if out_n_e2 != 'bottom':
-                out_neighbor_2 = -1
+                out_neighbor_2 = 0
         else:
             if type(out_n_e1) is int:
                 if math.fabs(outlet - out_n_e1) != 2:
-                    out_neighbor_1 = -1
+                    out_neighbor_1 = 0
             else:
-                out_neighbor_1 = -1
+                out_neighbor_1 = 0
             if type(out_n_e2) is int:
                 if math.fabs(outlet - out_n_e2) != 2:
-                    out_neighbor_2 = -1
+                    out_neighbor_2 = 0
             else:
-                out_neighbor_2 = -1
+                out_neighbor_2 = 0
 
         if out_neighbor_2 > 0:
             in_direction = 'e2'
@@ -409,40 +409,112 @@ def solve_track(design):
     return max_path, cost, max_part_list, max_loc_list, max_rot_list, en_his
 
 
+def good_design():
+
+    design = [1]*(num_div_x*num_div_y*num_div_z*gene_per_section)
+
+    p_gene = num_div_x*num_div_y*(num_div_z-1)*gene_per_section
+    design[p_gene] = 1
+    design[p_gene + 1] = 1
+
+    p_gene -= num_div_x*num_div_y*gene_per_section
+
+    design[p_gene] = 2
+    design[p_gene + 1] = 1
+
+    p_gene += 1*gene_per_section
+
+    design[p_gene] = 3
+    design[p_gene + 1] = 1
+
+    p_gene += 1*gene_per_section
+
+    design[p_gene] = 3
+    design[p_gene + 1] = 3
+
+    p_gene += 1*gene_per_section
+
+    design[p_gene] = 3
+    design[p_gene + 1] = 1
+
+    p_gene += 1*gene_per_section
+
+    design[p_gene] = 4
+    design[p_gene + 1] = 4
+
+    p_gene += num_div_x*gene_per_section
+
+    design[p_gene] = 3
+    design[p_gene + 1] = 4
+
+    p_gene += num_div_x*gene_per_section
+
+    design[p_gene] = 3
+    design[p_gene + 1] = 2
+
+    p_gene += num_div_x*gene_per_section
+
+    design[p_gene] = 5
+    design[p_gene + 1] = 2
+
+    p_gene -= num_div_x*num_div_y*gene_per_section
+
+    design[p_gene] = 1
+    design[p_gene + 1] = 2
+
+    p_gene -= num_div_x * num_div_y*gene_per_section
+
+    design[p_gene] = 1
+    design[p_gene + 1] = 3
+
+    p_gene -= num_div_x * num_div_y*gene_per_section
+
+    design[p_gene] = 1
+    design[p_gene + 1] = 4
+
+    p_gene -= num_div_x * num_div_y*gene_per_section
+
+    design[p_gene] = 2
+    design[p_gene + 1] = 3
+
+    p_gene -= 1*gene_per_section
+
+    design[p_gene] = 2
+    design[p_gene + 1] = 1
+
+    p_gene += num_div_x*num_div_y*gene_per_section
+
+    design[p_gene] = 5
+    design[p_gene + 1] = 3
+
+    p_gene -= 1*gene_per_section
+
+    design[p_gene] = 5
+    design[p_gene + 1] = 1
+
+    p_gene -= num_div_x * num_div_y*gene_per_section
+
+    design[p_gene] = 1
+    design[p_gene + 1] = 1
+
+    return design
+
+
 if __name__ == '__main__':
 
-    max_len = 0
+    gen_design = good_design()
 
-    mt_length = None
-    mt_cost = None
-    mp_list = None
-    mp_loc = None
-    mr_list = None
-    me_list = None
-
-    for _ in xrange(1000):
-        gen_design = [random.randrange(1, 5, 1) for r in range(num_div_x*num_div_y*num_div_z*gene_per_section)]
-
-        t_length, t_cost, p_list, p_loc, r_list, e_list = solve_track(gen_design)
-
-        if t_length > maximum_length:
-            maximum_length = t_length
-            mt_length = t_length
-            mt_cost = t_cost
-            mp_list = p_list
-            mp_loc = p_loc
-            mr_list = r_list
-            me_list = e_list
+    t_length, t_cost, p_list, p_loc, r_list, e_list = solve_track(gen_design)
 
     speeds = []
-    for e in me_list:
+    for e in e_list:
         speeds.append(math.sqrt(e/(.5*mass)))
 
-    print mt_length
-    print mt_cost
-    print mp_list
-    print mp_loc
-    print mr_list
-    print len(mp_list)
-    print me_list
-    print speeds
+    print(t_length)
+    print(t_cost)
+    print(p_list)
+    print(p_loc)
+    print(r_list)
+    print(len(p_list))
+    print(e_list)
+    print(speeds)
