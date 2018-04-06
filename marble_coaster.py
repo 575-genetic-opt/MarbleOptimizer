@@ -1,7 +1,11 @@
 import random
 import math
 import sys
+<<<<<<< HEAD
 import csv
+=======
+import matplotlib.pyplot as plt
+>>>>>>> 6705fe773e95493b54afc5ce7d52e9051a6f20a7
 
 sys.setrecursionlimit(200)
 gene_per_section = 2
@@ -520,6 +524,7 @@ if __name__ == '__main__':
     print(e_list)
     print(speeds)
 
+<<<<<<< HEAD
     with open('good_design.csv','w') as csvfile:
         spamwriter = csv.writer(csvfile)
         spamwriter.writerow(p_list)
@@ -529,3 +534,5 @@ if __name__ == '__main__':
                 location_list.append(item)
         spamwriter.writerow(location_list)
         spamwriter.writerow(r_list)
+=======
+>>>>>>> 6705fe773e95493b54afc5ce7d52e9051a6f20a7
