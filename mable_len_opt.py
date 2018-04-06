@@ -1,4 +1,4 @@
-from marble_coaster import calc_cost, calc_length
+from marble_coaster import calc_cost, calc_length, solve_track
 from MultiObjectiveOptimizer import MultiObjectiveOptimizer
 from numpy import random
 import matplotlib
@@ -50,10 +50,12 @@ def check_design(design):
 
     # try:
     design = design.astype(int)
-    length = -calc_length(design)
+    t_length, t_cost, p_list, p_loc, r_list, e_list = solve_track(design)
+
+    # length = -calc_length(design)
     # cost = calc_cost(design)
 
-    return [length]
+    return [-t_length]
 
 
 
@@ -64,7 +66,7 @@ if __name__ == "__main__":
     for i in range(10**3):
         design_space.append({'type': 'integer', 'bounds': (1, 5)})
         design_space.append({'type': 'integer', 'bounds': (0, 4)})
-    optimizer = MultiObjectiveOptimizer(design_space, check_design, n_generations=2000, population_size=300,
+    optimizer = MultiObjectiveOptimizer(design_space, check_design, n_generations=2000, population_size=100,
                                         n_objectives=1, generation_func=plot_progression)
     opts = optimizer.find_min()
     print(-np.min(opts[:, 1]))

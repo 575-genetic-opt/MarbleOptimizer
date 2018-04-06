@@ -1,6 +1,7 @@
 import random
 import math
 import sys
+import matplotlib.pyplot as plt
 
 sys.setrecursionlimit(200)
 gene_per_section = 2
@@ -518,3 +519,4 @@ if __name__ == '__main__':
     print(len(p_list))
     print(e_list)
     print(speeds)
+
