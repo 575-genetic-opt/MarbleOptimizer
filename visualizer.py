@@ -2,6 +2,8 @@ import wx
 import os
 import sys
 import visualizer
+import csv
+
 from load_stl import loader
 try:
     from wx import glcanvas
@@ -144,11 +146,8 @@ class MyCanvasBase(glcanvas.GLCanvas):
                 xPos += (self.x - self.lastx) * translate
                 yPos += (self.y - self.lasty) * translate * -1
             elif self.y < (h / 10.0):
-                # zRot += (self.x - self.lastx) * xScale * -1
                 deltaRotZ += (self.x - self.lastx) * xScale * -1
             else:
-                # xRot += (self.y - self.lasty) * yScale
-                # yRot += (self.x - self.lastx) * xScale
                 deltaRotX += (self.y - self.lasty) * yScale
                 deltaRotY += (self.x - self.lastx) * xScale
 
@@ -167,10 +166,7 @@ class MyCanvasBase(glcanvas.GLCanvas):
         global scaling
         amt = evt.GetWheelRotation()
         units = amt / (-(evt.GetWheelDelta()))
-        # scaling += units / 50.0
         scaling += units / 80.0
-        # print units / 50.0
-        # print scaling
         if scaling < 0:
             scaling = 0
 
@@ -193,10 +189,6 @@ class MyCanvasBase(glcanvas.GLCanvas):
         global xPos, yPos, scaling, AccumulatedRotation
         global CurrentView
 
-        # slider1x = CurrentView[0]
-        # slider1y = CurrentView[1]
-        # scaling = CurrentView[2]
-        # AccumulatedRotation = CurrentView[3]
         if Views[view_idx] is not None:
             xPos = Views[view_idx][0]
             yPos = Views[view_idx][1]
@@ -212,19 +204,8 @@ class MyCanvasBase(glcanvas.GLCanvas):
     def screenshot(self):
         size = self.GetClientSize()
         w, h = size
-        # w = max(w, 1.0)
-        # h = max(h, 1.0)
         data = glReadPixels(0, 0, w, h, GL_RGB, GL_UNSIGNED_BYTE)
-        # this 0, 0 is the lower LEFT corner... can I switch 0 for h?
 
-
-        ## this doesn't work because glReadPixels returns some kind of nonsense
-        # data_copy = list(data)
-        # for x in range(1, w):
-        #     for y in range(1, h):
-        #         data_copy[x,y] = data[x, h - y]
-
-        # image = Image.frombytes("RGB", (w, h), data)
         image = Image.frombytes("RGB", (w, h), data)
         image2 = image.transpose(Image.FLIP_TOP_BOTTOM)
         image2.save('C:\Users\Chris\Documents\RepoOfAwesomeness\Temp\image' + str(self.id) + '.eps', 'EPS')
@@ -249,52 +230,63 @@ class Model1Canvas(MyCanvasBase):
         glLoadIdentity()
         AccumulatedRotation = glGetFloatv(GL_MODELVIEW_MATRIX)
 
-        glClearColor(0.3, 0.3, 0.4, 0.0)
+        glClearColor(0.3, 0.3, 0.4, 0.0)    # background color
 
-        self.buffers = glGenBuffers(4)
-        self.BindTheBuffers()
+        # self.buffers = glGenBuffers(4)
+        # self.BindTheBuffers()
 
         self.parts = []
         self.models = []
+        self.information = []
         part_name = 'vw_3.stl'
-        scale1 = 0.5
-        scale2 = 1.0
+        scale1 = 1.0
 
-        # pos1 = [0.0, 0.0, 0.0]
-        rot1 = [0, 0, 0]
-        # pos2 = [10, 10, 0.0]
-        # rot2 = [45.0, 45.0, 90.0]
-        # pos1 = [0.0, 0.0, 0.0]
-        # pos2 = [0.0, 0.0, 0.0]
-        # pos3 = [1.0, 1.0, 0.0]*(10*scale1)
-        pos3 = [i*10*scale1 for i in [1.0, 1.0, 0.0]]
-        pos4 = [i*10*scale1 for i in [1.0, 2.0, 0.0]]
-        pos5 = [i*10*scale1 for i in [1.0, 3.0, 0.0]]
-        pos6 = [i*10*scale1 for i in [1.0, 1.0, 1.0]]
-        pos7 = [i*10*scale1 for i in [1.0, 3.0, 1.0]]
-        pos8 = [i*10*scale1 for i in [1.0, 3.0, 3.0]]
-        rot2 = [0, 180, 0]
-        rot3 = [0, 90, 0]
-        rot4 = [0, 270, 0]
+        # get information
+        self.read_csv()
 
+        parts = self.information[0]
+        locations = self.information[1]
+        rotations = self.information[2]
 
+        i = 0
+        for part in parts:
+            if part == 0.0:
+                name = 't-bc.stl'   # part 2, t-b.stl is horizontal
+            elif part == 1.0:
+                name = 't-1c.stl'   # part 1, t-1.stl is macaroni up
+            elif part == 2.0:
+                name = '1-3c.stl'   # part 3, 1-3.stl is vertical
+            elif part == 3.0:
+                name = '1-4c.stl'   # part 4, 1-4.stl is macaroni in plane
+            elif part == 4.0:
+                name = '1-bc.stl'   # part 5, 1-b.stl is macaroni down
 
-        # self.get_stl(part_name, pos1, rot1, scale1)
-        # self.get_stl(part_name, pos2, rot2, scale2)
+            pos = [j * 10 * scale1 for j in [-locations[i*3], locations[i*3+2], locations[i*3+1]]]
 
-    # t-1.stl is macaroni in plane
+            # rot1 = [0, 0, 0]
+            # rot2 = [0, 180, 0]
+            # rot3 = [0, 90, 0]
+            # rot4 = [0, 270, 0]
 
-        self.get_stl('t-1c.stl', pos3, rot1, scale1)
-        # self.get_stl('t-1.stl', pos3, rot2, scale1)
-        self.get_stl('t-bc.stl', pos4, rot1, scale1)
-        self.get_stl('1-bc.stl', pos5, rot1, scale1)
-        self.get_stl('1-3c.stl', pos6, rot1, scale1)
-        self.get_stl('1-4c.stl', pos7, rot3, scale1)
-        self.get_stl('1-4c.stl', pos7, rot1, scale1)
-        self.get_stl('1-4c.stl', pos7, rot2, scale1)
-        self.get_stl('1-4c.stl', pos7, rot4, scale1)
-        # self.get_stl('1-4.stl', pos8, rot4, scale1)
+            rot = [0, rotations[i]*90 - 90, 0]
+
+            self.get_stl(name, pos, rot, scale1)
+
+            i += 1
+
         self.init_shading()
+
+    def read_csv(self):
+        with open('good_design.csv', 'r') as f:
+            reader = csv.reader(f)
+
+            for row in reader:
+                # print row
+                next_row = []
+                for item in row:
+                    next_row.append(float(item))
+                self.information.append(next_row)
+        print self.information
 
     def get_stl(self, model_name, pos, rot, scale):
         model = loader()
@@ -342,7 +334,6 @@ class Model1Canvas(MyCanvasBase):
 
     def init_shading(self):
         glShadeModel(GL_SMOOTH)
-        # glClearColor(0.0, 0.0, 0.0, 0.0)
         glClearDepth(1.0)
         glEnable(GL_DEPTH_TEST)
         glShadeModel(GL_SMOOTH)
@@ -353,7 +344,7 @@ class Model1Canvas(MyCanvasBase):
         glEnable(GL_LIGHTING)
         glEnable(GL_LIGHT0)
         # glLight(GL_LIGHT0, GL_POSITION, (0, 0, -100, 0))
-        glLight(GL_LIGHT0, GL_AMBIENT, (.3,.7,.7,0.5))
+        glLight(GL_LIGHT0, GL_AMBIENT, (.3, .7, .7, 0.5))
         # glLight(GL_LIGHT0, GL_DIFFUSE, (0.5,0.5,0.5, 0.5))
         # glEnable(GL_LIGHT1)
         # glLight(GL_LIGHT1, GL_POSITION, (0, 0, -100, 0))
@@ -380,12 +371,11 @@ class Model1Canvas(MyCanvasBase):
 
         glLoadIdentity()
         gluLookAt(0.0, 0.0, 10.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0)  # initial point we look at (eye coords, center, up dir)
-        # gluLookAt(slider1x, -slider1y, scaling, slider1x, -slider1y, 0.0, 0.0, 1.0, 0.0)  # alternate way to do pan
 
         # CENTERPOINT MARKER
-        glPushMatrix()
-        self.CenterpointMarker()
-        glPopMatrix()
+        # glPushMatrix()
+        # self.CenterpointMarker()
+        # glPopMatrix()
 
         # Apply initial transformations
         glTranslatef(xPos, yPos, 0.0)   # this translate is for panning (the last transformation OpenGL will perform (besides the gluLookAt)
@@ -417,65 +407,29 @@ class Model1Canvas(MyCanvasBase):
 
         # Start drawing
 
-        # glScale(-100,-100,-100)
         glMaterial(GL_FRONT, GL_DIFFUSE, (0.8, 0.8, 0.8, 1.0))
 
+        # draw marble coaster
         i = 1.0
         current_matrix = glGetFloatv(GL_MODELVIEW_MATRIX)
         for model in self.parts:
             glPushMatrix()
             glLoadIdentity()
             glMultMatrixf(current_matrix)
-            # glTranslatef(model[1][0] + xPos, model[1][1] + yPos, model[1][2])
-            # glTranslatef(xPos, yPos, 0.0)
+
             glTranslatef(model[1][0], model[1][1], model[1][2])
-            # glMultMatrixf(AccumulatedRotation)
 
             glRotatef(model[2][0], 1.0, 0.0, 0.0)
             glRotatef(model[2][1], 0.0, 1.0, 0.0)
             glRotatef(model[2][2], 0.0, 0.0, 1.0)
-            # glScalef(scaling, scaling, scaling)
+
             glScale(model[3], model[3], model[3])
-            # glTranslatef(-centerpoint[0], -centerpoint[1], -centerpoint[2])
+
             model[0].draw()
             i += 3.0
 
             glPopMatrix()
 
-        glEnableClientState(GL_VERTEX_ARRAY)
-        glEnableClientState(GL_COLOR_ARRAY)
-
-        glBindBuffer(GL_ARRAY_BUFFER, self.buffers[0])
-        glVertexPointer(3, GL_FLOAT, 0, None)
-
-        glBindBuffer(GL_ARRAY_BUFFER, self.buffers[1])
-        glColorPointer(3, GL_FLOAT, 0, None)
-
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, self.buffers[2])
-        glDrawElements(GL_TRIANGLES, len(self.indices), GL_UNSIGNED_INT, None)
-
-        # draw outlines
-        glLineWidth(2)
-        glPolygonMode(GL_FRONT, GL_LINE)
-        glPolygonMode(GL_BACK, GL_LINE)
-
-        glBindBuffer(GL_ARRAY_BUFFER, self.buffers[0])
-        glVertexPointer(3, GL_FLOAT, 0, None)
-
-        glBindBuffer(GL_ARRAY_BUFFER, self.buffers[3])
-        glColorPointer(3, GL_FLOAT, 0, None)
-
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, self.buffers[2])
-        glDrawElements(GL_TRIANGLES, len(self.indices), GL_UNSIGNED_INT, None)
-
-        glLineWidth(1)
-        glPolygonMode(GL_FRONT, GL_FILL)
-        glPolygonMode(GL_BACK, GL_FILL)
-
-        glDisableClientState(GL_COLOR_ARRAY)
-        glDisableClientState(GL_VERTEX_ARRAY)
-
-        # print "end context1"
         self.SwapBuffers()
 
     def CenterpointMarker(self):
