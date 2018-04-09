@@ -80,8 +80,8 @@ class MultiObjectiveOptimizer:
                     x_new[j] = np.random.randint(val['bounds'][0], val['bounds'][1] + 1)
                 elif val['type'] == 'continuous':
                     x_new[j] = np.random.uniform(val['bounds'][0], val['bounds'][1])
-                else:
-                    print("error unknown variable type")
+                # else:
+                #     print("error unknown variable type")
             population[i, 1:self.num_objectives + 1] = self.fitness_func(x_new)
             population[i, self.num_objectives + 1:] = x_new
         population = sort_array_by_col(population, 0)
@@ -162,9 +162,9 @@ class MultiObjectiveOptimizer:
                 cons = self.constraint_func(design)
             elif self.constraint_func_input == "full":
                 cons = self.constraint_func(row)
-            else:
-                print("unrecognized constraint input term check constraint_func_input argument at initialization")
-                quit()
+            # else:
+                # print("unrecognized constraint input term check constraint_func_input argument at initialization")
+                # quit()
             if np.max(cons) > 0:
                 row[0] = max_fitness + np.max(cons)
         return population
