@@ -219,6 +219,7 @@ class Model1Canvas(MyCanvasBase):
         global shader
         global AccumulatedRotation
 
+        print "initgl"
         # set viewing projection
         glMatrixMode(GL_PROJECTION)  # now on the PROJECTION matrix stack, for setting up projection screen
         glFrustum(-0.5, 0.5, -0.5, 0.5, 1.0, 40.0)  # (left, right, bottom, top, near, far)
@@ -231,48 +232,58 @@ class Model1Canvas(MyCanvasBase):
         AccumulatedRotation = glGetFloatv(GL_MODELVIEW_MATRIX)
 
         glClearColor(0.3, 0.3, 0.4, 0.0)    # background color
-
-        # self.buffers = glGenBuffers(4)
-        # self.BindTheBuffers()
+        self.color_list = [[1.0, 0.0, 0.0],
+                           [0.0, 1.0, 0.0],
+                           [0.0, 0.0, 1.0],
+                           [1.0, 1.0, 0.0]
+                           ]
 
         self.parts = []
         self.models = []
         self.information = []
-        part_name = 'vw_3.stl'
-        scale1 = 1.0
 
-        # get information
-        self.read_csv()
+        self.det_centerpoint()
 
-        parts = self.information[0]
-        locations = self.information[1]
-        rotations = self.information[2]
+        self.load_model(self.p_list, self.p_loc, self.r_list)
 
-        i = 0
-        for part in parts:
-            if part == 0.0:
-                name = 't-bc.stl'   # part 2, t-b.stl is horizontal
-            elif part == 1.0:
-                name = 't-1c.stl'   # part 1, t-1.stl is macaroni up
-            elif part == 2.0:
-                name = '1-3c.stl'   # part 3, 1-3.stl is vertical
-            elif part == 3.0:
-                name = '1-4c.stl'   # part 4, 1-4.stl is macaroni in plane
-            elif part == 4.0:
-                name = '1-bc.stl'   # part 5, 1-b.stl is macaroni down
 
-            pos = [j * 10 * scale1 for j in [-locations[i*3], locations[i*3+2], locations[i*3+1]]]
+        print self.model_center
 
-            # rot1 = [0, 0, 0]
-            # rot2 = [0, 180, 0]
-            # rot3 = [0, 90, 0]
-            # rot4 = [0, 270, 0]
-
-            rot = [0, rotations[i]*90 - 90, 0]
-
-            self.get_stl(name, pos, rot, scale1)
-
-            i += 1
+        # part_name = 'vw_3.stl'
+        # scale1 = 1.0
+        #
+        # # get information
+        # self.read_csv()
+        #
+        # parts = self.information[0]
+        # locations = self.information[1]
+        # rotations = self.information[2]
+        #
+        # i = 0
+        # for part in parts:
+        #     if part == 0.0:
+        #         name = 't-bc.stl'   # part 2, t-b.stl is horizontal
+        #     elif part == 1.0:
+        #         name = 't-1c.stl'   # part 1, t-1.stl is macaroni up
+        #     elif part == 2.0:
+        #         name = '1-3c.stl'   # part 3, 1-3.stl is vertical
+        #     elif part == 3.0:
+        #         name = '1-4c.stl'   # part 4, 1-4.stl is macaroni in plane
+        #     elif part == 4.0:
+        #         name = '1-bc.stl'   # part 5, 1-b.stl is macaroni down
+        #
+        #     pos = [j * 10 * scale1 for j in [-locations[i*3], locations[i*3+2], locations[i*3+1]]]
+        #
+        #     # rot1 = [0, 0, 0]
+        #     # rot2 = [0, 180, 0]
+        #     # rot3 = [0, 90, 0]
+        #     # rot4 = [0, 270, 0]
+        #
+        #     rot = [0, rotations[i]*90 - 90, 0]
+        #
+        #     self.get_stl(name, pos, rot, scale1)
+        #
+        #     i += 1
 
         self.init_shading()
 
@@ -288,19 +299,84 @@ class Model1Canvas(MyCanvasBase):
                 self.information.append(next_row)
         print self.information
 
-    def get_stl(self, model_name, pos, rot, scale):
+    def set_model(self, p_list, p_loc, r_list):
+        self.p_list = p_list
+        self.p_loc = p_loc
+        self.r_list = r_list
+
+    def load_model(self, p_list, p_loc, r_list):
+        print "loading model"
+
+        # part_name = 'vw_3.stl'
+        scale1 = 2.0
+
+        # get information
+        # self.read_csv()
+
+        parts = p_list
+        locations = p_loc
+        rotations = r_list
+
+        i = 0
+        for part in parts:
+            if part == 0:
+                name = 't-bc.stl'  # part 2, t-b.stl is horizontal
+            elif part == 1:
+                name = 't-1c.stl'  # part 1, t-1.stl is macaroni up
+            elif part == 2:
+                name = '1-3c.stl'  # part 3, 1-3.stl is vertical
+            elif part == 3:
+                name = '1-4c.stl'  # part 4, 1-4.stl is macaroni in plane
+            elif part == 4:
+                name = '1-bc.stl'  # part 5, 1-b.stl is macaroni down
+            # print name
+            # print part
+
+            # pos = [j * 10 * scale1 for j in [-locations[i * 3], locations[i * 3 + 2], locations[i * 3 + 1]]]
+            pos = [-locations[i][0], locations[i][2], locations[i][1]]  # set up position
+            pos = [pos[0] - self.model_center[0], pos[1] - self.model_center[1],
+                   pos[2] - self.model_center[2]]   # move each piece to be relative to center
+            # print pos
+            pos = [j * 10 * scale1 for j in pos]    # scale each piece
+
+            rot = [0, rotations[i] * 90 - 90, 0]  # rot1 = [0, 0, 0], rot2 = [0, 180, 0], rot3 = [0, 90, 0], rot4 = [0, 270, 0]
+
+            index = random.randint(0, len(self.color_list))
+            color = self.color_list[index]
+            self.get_stl(name, pos, rot, scale1, color)
+
+            i += 1
+        print "model loaded"
+
+    def det_centerpoint(self):
+
+        locations = self.p_loc
+        average_location = [0.0, 0.0, 0.0]
+        for location in locations:
+            average_location[0] += -location[0]
+            average_location[2] += location[1]
+            average_location[1] += location[2]
+        length = len(locations)
+        average_location[0] /= length
+        average_location[2] /= length
+        average_location[1] /= length
+
+        print average_location
+        self.model_center = average_location
+
+    def get_stl(self, model_name, pos, rot, scale, color):
         model = loader()
-        model.model=[]  # for some reason new instance of loader has model information from last instance??
+        model.model = []  # for some reason new instance of loader has model information from last instance??
 
         try:
             model.load_stl(os.path.abspath('') + '/' + model_name)
         except:
             print "didn't work"
         self.models.append(model)
-        self.assemble_part_list(model, pos, rot, scale)
+        self.assemble_part_list(model, pos, rot, scale, color)
 
-    def assemble_part_list(self, model, pos, rot, scale):
-        self.parts.append([model, pos, rot, scale])
+    def assemble_part_list(self, model, pos, rot, scale, color):
+        self.parts.append([model, pos, rot, scale, color])
 
     def BindTheBuffers(self):
         # global vertices, colors, indices
@@ -340,14 +416,20 @@ class Model1Canvas(MyCanvasBase):
         glDepthFunc(GL_LEQUAL)
         glHint(GL_PERSPECTIVE_CORRECTION_HINT, GL_NICEST)
 
-        glEnable(GL_COLOR_MATERIAL)
+        # glEnable(GL_COLOR_MATERIAL)
         glEnable(GL_LIGHTING)
         glEnable(GL_LIGHT0)
         # glLight(GL_LIGHT0, GL_POSITION, (0, 0, -100, 0))
-        glLight(GL_LIGHT0, GL_AMBIENT, (.3, .7, .7, 0.5))
+        # glLight(GL_LIGHT0, GL_AMBIENT, (.3, .7, .7, 1.0))
         # glLight(GL_LIGHT0, GL_DIFFUSE, (0.5,0.5,0.5, 0.5))
-        # glEnable(GL_LIGHT1)
-        # glLight(GL_LIGHT1, GL_POSITION, (0, 0, -100, 0))
+
+        glLight(GL_LIGHT0, GL_SPECULAR, (1.0, 1.0, 1.0))
+        glLight(GL_LIGHT0, GL_DIFFUSE, (1.0, 1.0, 1.0))
+        glLight(GL_LIGHT0, GL_AMBIENT, (1.0, 1.0, 1.0))
+
+        glEnable(GL_LIGHT1)
+        glLight(GL_LIGHT1, GL_POSITION, (0, 0, 10, 0))
+        glLight(GL_LIGHT1, GL_SPECULAR, (1.0, 1.0, 1.0))
         # glLight(GL_LIGHT0, GL_AMBIENT, (.7,.5,.3,1))
         glMatrixMode(GL_MODELVIEW)
 
@@ -373,9 +455,9 @@ class Model1Canvas(MyCanvasBase):
         gluLookAt(0.0, 0.0, 10.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0)  # initial point we look at (eye coords, center, up dir)
 
         # CENTERPOINT MARKER
-        # glPushMatrix()
-        # self.CenterpointMarker()
-        # glPopMatrix()
+        glPushMatrix()
+        self.CenterpointMarker()
+        glPopMatrix()
 
         # Apply initial transformations
         glTranslatef(xPos, yPos, 0.0)   # this translate is for panning (the last transformation OpenGL will perform (besides the gluLookAt)
@@ -407,28 +489,42 @@ class Model1Canvas(MyCanvasBase):
 
         # Start drawing
 
-        glMaterial(GL_FRONT, GL_DIFFUSE, (0.8, 0.8, 0.8, 1.0))
+        # glMaterial(GL_FRONT, GL_DIFFUSE, (0.8, 0.8, 0.8, 1.0))
+        # glMaterial(GL_FRONT, GL_SHININESS, (0.8, 0.8, 0.8, 1.0))
+        # glMaterialfv(GL_FRONT_AND_BACK, GL_SPECULAR,
+        #              (1.0, 1.0, 1.0));
+        # glMaterialfv(GL_FRONT_AND_BACK, GL_SHININESS, 128);
 
         # draw marble coaster
         i = 1.0
         current_matrix = glGetFloatv(GL_MODELVIEW_MATRIX)
-        for model in self.parts:
-            glPushMatrix()
-            glLoadIdentity()
-            glMultMatrixf(current_matrix)
+        if self.parts is not empty:
 
-            glTranslatef(model[1][0], model[1][1], model[1][2])
+            for model in self.parts:
+                glPushMatrix()
+                glLoadIdentity()
+                # glColorMaterial(GL_FRONT, GL_DIFFUSE)
+                # index = random.randint(0,len(self.color_list))
+                # glColor(model[4])
+                glMaterialfv(GL_FRONT_AND_BACK, GL_SPECULAR, model[4])
+                # glEnable(GL_COLOR_MATERIAL)
+                glMaterialfv(GL_FRONT_AND_BACK, GL_AMBIENT, model[4])
+                glMaterialfv(GL_FRONT_AND_BACK, GL_DIFFUSE, model[4])
+                glMaterialfv(GL_FRONT_AND_BACK, GL_SHININESS, 50);
+                             #              (1.0, 1.0, 1.0));
+                glMultMatrixf(current_matrix)
 
-            glRotatef(model[2][0], 1.0, 0.0, 0.0)
-            glRotatef(model[2][1], 0.0, 1.0, 0.0)
-            glRotatef(model[2][2], 0.0, 0.0, 1.0)
+                glTranslatef(model[1][0], model[1][1], model[1][2])
 
-            glScale(model[3], model[3], model[3])
+                glRotatef(model[2][0], 1.0, 0.0, 0.0)
+                glRotatef(model[2][1], 0.0, 1.0, 0.0)
+                glRotatef(model[2][2], 0.0, 0.0, 1.0)
 
-            model[0].draw()
-            i += 3.0
-
-            glPopMatrix()
+                glScale(model[3], model[3], model[3])
+                model[0].draw()
+                i += 3.0
+                # glDisable(GL_COLOR_MATERIAL)
+                glPopMatrix()
 
         self.SwapBuffers()
 

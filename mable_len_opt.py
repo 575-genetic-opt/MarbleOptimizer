@@ -4,6 +4,9 @@ from numpy import random
 import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
+from main import beginGUI
+import main
+
 import sys
 # sys.setrecursionlimit(200)
 
@@ -66,15 +69,21 @@ if __name__ == "__main__":
     for i in range(10**3):
         design_space.append({'type': 'integer', 'bounds': (1, 5)})
         design_space.append({'type': 'integer', 'bounds': (0, 4)})
-    optimizer = MultiObjectiveOptimizer(design_space, check_design, n_generations=200, population_size=20,
+    optimizer = MultiObjectiveOptimizer(design_space, check_design, n_generations=2, population_size=1000,
                                         n_objectives=1, generation_func=plot_progression, use_genocide=True)
     opts = optimizer.find_min()
     # np.savetxt('optmimum_coasters.csv', opts, delimiter=',')
     print(-np.min(opts[:, 1]))
     opts = sort_array_by_col(opts, 1)
-    best_design = opts[0, :]
+    best_design = opts[0, 2:]
+    best_design = np.int_(best_design)
     t_length, t_cost, p_list, p_loc, r_list, e_list = solve_track(best_design)
 
+    print p_list
+    print p_loc
+    print r_list
+    beginGUI(p_list, p_loc, r_list)
+    # main.context1.load_model(p_list, p_loc, r_list)
 
     # genocide_free = []
     # with_genocide = []

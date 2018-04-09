@@ -36,9 +36,9 @@ class ButtonPanel(wx.Panel):
 
         # With this enabled, you see how you can put a GLCanvas on the wx.Panel
         if 1:
-            context1 = visualizer.Model1Canvas(self)
-            context1.SetMinSize((400, 400))
-            box4.Add(context1, 0, wx.ALIGN_LEFT | wx.ALL, 5)
+            self.context1 = visualizer.Model1Canvas(self)
+            self.context1.SetMinSize((400, 400))
+            box4.Add(self.context1, 0, wx.ALIGN_LEFT | wx.ALL, 5)
 
         # add subboxes to boxes
         box.Add(box2, 0, wx.ALIGN_CENTER | wx.TOP, 5)
@@ -125,6 +125,14 @@ def runTest(frame):
     win = ButtonPanel(frame)
     return win
 
+def beginGUI(p_list, p_loc, r_list):
+    app = RunDemoApp()
+    print "in gui"
+    # app.window.context1.load_model(p_list, p_loc, r_list)
+    openGLcanvas = app.window.context1
+    openGLcanvas.set_model(p_list, p_loc, r_list)
+    app.MainLoop()
 
-app = RunDemoApp()
-app.MainLoop()
+
+# app = RunDemoApp()
+# app.MainLoop()
