@@ -3,6 +3,7 @@ import os
 import sys
 import visualizer
 import csv
+from marble_coaster import solve_track
 
 from load_stl import loader
 try:
@@ -241,10 +242,11 @@ class Model1Canvas(MyCanvasBase):
         self.parts = []
         self.models = []
         self.information = []
+        self.optimum_models = []
 
         self.det_centerpoint()
 
-        self.load_model(self.p_list, self.p_loc, self.r_list)
+        self.load_model()
 
 
         print self.model_center
@@ -288,7 +290,7 @@ class Model1Canvas(MyCanvasBase):
         self.init_shading()
 
     def read_csv(self):
-        with open('good_design.csv', 'r') as f:
+        with open('optmimum_coasters.csv', 'r') as f:
             reader = csv.reader(f)
 
             for row in reader:
@@ -296,15 +298,30 @@ class Model1Canvas(MyCanvasBase):
                 next_row = []
                 for item in row:
                     next_row.append(float(item))
-                self.information.append(next_row)
-        print self.information
+                self.optimum_models.append(next_row)
+
+    def choose_model(self, choice):
+        self.parts = []
+        self.models = []
+        print choice
+        chosen_model = self.optimum_models[choice][2:]
+        i = 0
+        for item in chosen_model:
+            chosen_model[i] = int(item)
+            i+=1
+        # chosen_model = np.int_(chosen_model)
+        # best_design = opts[0, 2:]
+        # best_design = np.int_(best_design)
+        t_length, t_cost, p_list, p_loc, r_list, e_list = solve_track(chosen_model)
+        self.set_model(p_list, p_loc, r_list)
+        self.det_centerpoint()
 
     def set_model(self, p_list, p_loc, r_list):
         self.p_list = p_list
         self.p_loc = p_loc
         self.r_list = r_list
 
-    def load_model(self, p_list, p_loc, r_list):
+    def load_model(self):
         print "loading model"
 
         # part_name = 'vw_3.stl'
@@ -313,9 +330,9 @@ class Model1Canvas(MyCanvasBase):
         # get information
         # self.read_csv()
 
-        parts = p_list
-        locations = p_loc
-        rotations = r_list
+        parts = self.p_list
+        locations = self.p_loc
+        rotations = self.r_list
 
         i = 0
         for part in parts:

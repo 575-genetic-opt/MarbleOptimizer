@@ -72,7 +72,7 @@ if __name__ == "__main__":
     optimizer = MultiObjectiveOptimizer(design_space, check_design, n_generations=2, population_size=20,
                                         n_objectives=1, generation_func=plot_progression, use_genocide=True)
     opts = optimizer.find_min()
-    # np.savetxt('optmimum_coasters.csv', opts, delimiter=',')
+    np.savetxt('optmimum_coasters.csv', opts, delimiter=',')
     print(-np.min(opts[:, 1]))
     opts = sort_array_by_col(opts, 1)
     best_design = opts[0, 2:]
@@ -83,6 +83,7 @@ if __name__ == "__main__":
     print p_loc
     print r_list
     beginGUI(p_list, p_loc, r_list)
+
     # main.context1.load_model(p_list, p_loc, r_list)
 
     # genocide_free = []

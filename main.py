@@ -33,10 +33,20 @@ class ButtonPanel(wx.Panel):
             self.context1.SetMinSize((400, 400))
             box.Add(self.context1, 3, wx.ALL | wx.BOTTOM | wx.GROW, 5)
 
+        btn_load = wx.Button(self,10,"Load CSV")
+        self.Bind(wx.EVT_BUTTON, self.load_csv, btn_load)
+        box.Add(btn_load, 0, wx.ALIGN_CENTER, 2)
 
         self.SetAutoLayout(True)
         self.SetSizer(box)
 
+        self.csv_counter = 1
+
+    def load_csv(self, evt):
+        self.context1.read_csv()
+        self.context1.choose_model(self.csv_counter)
+        self.context1.load_model()
+        self.csv_counter += 1
 
     def OnButton(self, evt):
         if not haveGLCanvas:
