@@ -1,12 +1,11 @@
-from Optimizer import sort_array_by_col
 import numpy as np
-import matplotlib.pyplot as plt
 import copy
 
 
 class MultiObjectiveOptimizer:
     def __init__(self, x, fitness, n_generations=5, population_size=5, n_objectives=2, constraint=None,
-                 generation_func=None, constraint_func_input="design"):
+                 generation_func=None, constraint_func_input="design", crossover_type="uniform",
+                 mutation_type="unifom", use_genocide=False):
         """Initialize the optimizer
         x: list that contains a series of dictionaries that define the x values for the optimizer where
         type is either continuous or integer. and min and max are the minimum and maximum values of the variable this
@@ -35,6 +34,13 @@ class MultiObjectiveOptimizer:
         of the design, the next n values are the n objectives returned by the fitness function, and the last n values
         are the n values that define the design.  It is useful to define full if the fitness and constraints are based
         on the same values and they are somewhat expensive to obtain.
+
+        crossover_type: string, either "transitional" or "uniform" if transitional a transitional crossover is performed
+        if uniform a uniform crossover, meaning that the values are simply swapped is performed
+
+        mutation_type: string, either "uniform" or "dynamic" this defines the type of mutation that will occur.
+        dynamic mutation changes more at the beginning of the optimization and less toward the end. Uniform mutation
+        randomly selects a value in the bounds.
         """
         self.num_generations = n_generations
         self.num_population = np.trunc(population_size)
@@ -47,7 +53,10 @@ class MultiObjectiveOptimizer:
         self.x_def = x
         self.num_objectives = n_objectives
         self.generation_call = generation_func
-        self.constraint_func_input = constraint_func_input
+        self.constraint_func_input = constraint_func_input.lower()
+        self.crossover_type = crossover_type.lower()
+        self.mutation_type = mutation_type.lower()
+        self.use_genocide = use_genocide
 
         self.tournament_size = 2
         self.crossover_prob = 0.5
@@ -55,26 +64,32 @@ class MultiObjectiveOptimizer:
         self.cross_eta = 0.5
         self.mutation_beta = 0.13
 
-        # initialize the parent array
-        # stored in the form ([fitness, x1, x2, x3, ..., xn])
-        self.population = np.zeros((self.num_population, self.num_x + n_objectives + 1))
+        self.no_diversity_counter = 0
+        self.population = self.generate_population()
+
+        return
+
+    def generate_population(self):
+        # initialize population array
+        # stored in the form ([fitness, objective values, x1, x2, x3, ..., xn])
+        population = np.zeros((self.num_population, self.num_x + self.num_objectives + 1))
         for i in range(self.num_population):
             x_new = np.zeros(self.num_x)
-            for j, val in enumerate(x):
+            for j, val in enumerate(self.x_def):
                 if val['type'] == 'integer':
                     x_new[j] = np.random.randint(val['bounds'][0], val['bounds'][1] + 1)
                 elif val['type'] == 'continuous':
                     x_new[j] = np.random.uniform(val['bounds'][0], val['bounds'][1])
                 else:
                     print("error unknown variable type")
-            self.population[i, 1:n_objectives+1] = self.fitness_func(x_new)
-            self.population[i, n_objectives+1:] = x_new
-        self.population = sort_array_by_col(self.population, 0)
-        self.population = self.calc_maximin(self.population)
-        self.population = self.apply_constraints(self.population)
+            population[i, 1:self.num_objectives + 1] = self.fitness_func(x_new)
+            population[i, self.num_objectives + 1:] = x_new
+        population = sort_array_by_col(population, 0)
+        population = self.calc_fitness(population)
+        population = self.apply_constraints(population)
         if self.generation_call is not None:
-            self.generation_call(self.population)
-        return
+            self.generation_call(population)
+        return population
 
     def select_parents(self):
         """select the parents from the current population of the optimization"""
@@ -91,17 +106,48 @@ class MultiObjectiveOptimizer:
             parents[row, :] = sorted_competitors[0]
         return parents
 
-    def calc_maximin(self, population):
+    def calc_fitness(self, population):
         """calculates the maximin values for each point of the supplied population.  Uses a bunch of information stored
         in the class, so probably not a good idea to pass in random populations, unless you know what you're doing."""
-        for idx in range(population.shape[0]):
-            # get function values
-            fVals = copy.deepcopy(population[:, 1:self.num_objectives+1])
-            for col_idx in range(self.num_objectives):
-                test_val = fVals[idx, col_idx]
-                fVals[:, col_idx] = -(fVals[:, col_idx] - test_val)
-            fVals = np.delete(fVals, idx, 0)
-            population[idx, 0] = np.nanmax(np.nanmin(fVals, 1))
+        if self.num_objectives > 1:
+            for idx in range(population.shape[0]):
+                # get function values
+                fVals = copy.deepcopy(population[:, 1:self.num_objectives+1])
+                for col_idx in range(self.num_objectives):
+                    test_val = fVals[idx, col_idx]
+                    fVals[:, col_idx] = -(fVals[:, col_idx] - test_val)
+                fVals = np.delete(fVals, idx, 0)
+                population[idx, 0] = np.nanmax(np.nanmin(fVals, 1))
+        else:
+            population[:, 0] = population[:, 1]
+        return population
+
+    def check_diversity(self, population):
+        """
+        Checks that a population is diverse. If it is not the best members of the population are kept and the rest
+        of the population is randomly regenerated.
+        :param population: the population whose diversity is to be checked.
+        :return: the new population
+        """
+        fitness_vals = population[:, 0]
+        num_unique = len(np.unique(fitness_vals))
+        if num_unique == 1:
+            self.no_diversity_counter += 1
+            if self.no_diversity_counter > 20:
+                self.no_diversity_counter = 0
+                num_to_save = int(self.num_population * 0.2)
+                # sort the designs
+                population = sort_array_by_col(population, 0)
+                # save the best 10% of designs
+                best_designs = copy.deepcopy(population[0:num_to_save, :])
+                # regenerate the population
+                new_population = self.generate_population()
+                # replace the best designs
+                new_population[0:num_to_save, :] = best_designs
+                np.random.shuffle(new_population)
+                return new_population
+        else:
+            self.no_diversity_counter = 0
         return population
 
     def apply_constraints(self, population):
@@ -123,8 +169,11 @@ class MultiObjectiveOptimizer:
                 row[0] = max_fitness + np.max(cons)
         return population
 
-
     def find_min(self):
+        """
+        Runs the optimizer.
+        :return: the population at the end of the optimization routine.
+        """
         generations = []
         for generation in range(self.num_generations):
             # select reproducing parents
@@ -140,13 +189,24 @@ class MultiObjectiveOptimizer:
                     mutate2 = np.random.random()
                     if crossover < self.crossover_prob:
                         # perform the crossover
-                        self.crossover(child1, child2, x_idx)
+                        if self.crossover_type == "transitional":
+                            self.crossover_transitional(child1, child2, x_idx)
+                        else:
+                            self.crossover_uniform(child1, child2, x_idx)
                     if mutate1 < self.mutation_prob:
-                        child1 = self.mutate(child1, x_idx, self.x_def[x_idx]['bounds'],
-                                             self.x_def[x_idx]['type'], generation)
+                        if self.mutation_type == "dynamic":
+                            child1 = self.mutate_dynamic(child1, x_idx, self.x_def[x_idx]['bounds'],
+                                                         self.x_def[x_idx]['type'], generation)
+                        else:
+                            child1 = self.mutate_uniform(child1, x_idx, self.x_def[x_idx]['bounds'],
+                                                         self.x_def[x_idx]['type'])
                     if mutate2 < self.mutation_prob:
-                        child2 = self.mutate(child2, x_idx, self.x_def[x_idx]['bounds'],
-                                             self.x_def[x_idx]['type'], generation)
+                        if self.mutation_type == "dynamic":
+                            child2 = self.mutate_dynamic(child2, x_idx, self.x_def[x_idx]['bounds'],
+                                                         self.x_def[x_idx]['type'], generation)
+                        else:
+                            child1 = self.mutate_uniform(child1, x_idx, self.x_def[x_idx]['bounds'],
+                                                         self.x_def[x_idx]['type'])
                 # put the children into the children array
                 child1_fitness = self.fitness_func(child1)
                 child2_fitness = self.fitness_func(child2)
@@ -156,20 +216,22 @@ class MultiObjectiveOptimizer:
                 children[idx + 1, self.num_objectives+1:] = child2
             # perform elitism
             population_pool = np.append(parents, children, axis=0)
-            population_pool = self.calc_maximin(population_pool)
+            population_pool = self.calc_fitness(population_pool)
             population_pool = self.apply_constraints(population_pool)
             sorted_pool = sort_array_by_col(population_pool, 0)
             self.population = sorted_pool[0:self.num_population]
             # generations.append(copy.deepcopy(self.population))
-            print(generation)
+            # print(generation)
+            if self.use_genocide:
+                self.population = self.check_diversity(self.population)
             if self.generation_call is not None:
                 self.generation_call(self.population)
         return self.population
 
-    def crossover(self, child1, child2, x_idx):
+    def crossover_transitional(self, child1, child2, x_idx):
         """
-        Performs crossover between the two children at the specifiec index.  The children must be numpy arrays or
-        some other object that is mutable so that the changes persist
+        Performs a transitional crossover from uniform to blend between the two children at the specifiec index.
+        The children must be numpy arrays or some other object that is mutable so that the changes persist
         :param child1: Child 1 to be crossed a numpy array of the values
         :param child2: Child 2 to be crossed a numpy array of the values
         :param x_idx: Index location for the crossover.
@@ -191,12 +253,27 @@ class MultiObjectiveOptimizer:
             child1[x_idx] = int(np.round(child1[x_idx]))
             child2[x_idx] = int(np.round(child2[x_idx]))
 
-    def mutate(self, child, idx, bounds, type, generation):
+    def crossover_uniform(self, child1, child2, x_idx):
         """
-        Perform a mutation on the child at the specified location
+        Performs a uniform crossover between the children at the specified x index
+        :param child1: design 1 to be crossed
+        :param child2: design 2 to be crossed
+        :param x_idx: Index location for the crossover
+        :return: none
+        """
+        r = np.random.random()
+        if r <= 0.5:
+            temp = child1[x_idx]
+            child1[x_idx] = child2[x_idx]
+            child2[x_idx] = temp
+
+    def mutate_dynamic(self, child, idx, bounds, type, generation):
+        """
+        Perform a dynamic mutation on the child at the specified location
+        meaning that the mutation amount decreases as the generation number increases
         :param child: array of values that represent the child to be mutated
         :param idx: the index where the mutation should occur
-        :param bounds: bound of the value that is being mutated
+        :param bounds: tuple of the bounds of the value that is being mutated
         :param type: Type of the variable
         :param generation: generation number for the mutation.
         :return: the mutated child
@@ -213,112 +290,26 @@ class MultiObjectiveOptimizer:
             child[idx] = np.round(child[idx])
         return child
 
-def calc_fitness(x):
-    width = x[0]
-    height = x[1]
+    def mutate_uniform(self, child, idx, bounds, type):
+        """
+        Perform a mutation of the child at the specified index. The mutation is uniform meaning that it will
+        be randomly assigned in the bounds of the value.
+        :param child: the design that is to be mutated
+        :param idx: the index of the value where the mutation should occur
+        :param bounds: tuple of the bounds on the variable that we are mutating
+        :param type: the type of the variable
+        :return: the mutated child
+        """
+        min = bounds[0]
+        max = bounds[1]
+        if type == 'integer':
+            child[idx] = np.random.randint(min, max+1)
+        else:
+            child[idx] = np.random.uniform(min, max+0.000001)
+        return child
 
-    length = 20
-    force = 10
-    modulus = 39000000
-    density = 4.65 / 16
-
-    max_weight = 200
-    max_defl = 2
-
-    deflection = (force * length**3) / (3 * modulus * (width * height**3)/12)
-    # deflection = saturate(deflection, max_defl)/max_defl
-    weight = length * width * height * density
-    # weight = saturate(weight, max_weight)/max_weight
-    return [deflection, weight]
-
-def calc_fitness2(x):
-    width = x[0]
-    height = x[1]
-
-    length = 20
-    force = 10
-    modulus = 39000000
-    density = 4.65 / 16
-
-    max_weight = 200
-    max_defl = 2
-
-    deflection = (force * length**3) / (3 * modulus * (width * height**3)/12)
-    # deflection = saturate(deflection, max_defl)/max_defl
-    weight = length * width * height * density
-    # weight = saturate(weight, max_weight)/max_weight
-    return [deflection]
-
-def calc_constraints(x):
-    width = x[0]
-    height = x[1]
-
-    length = 20
-    force = 10
-    modulus = 39000000
-    density = 4.65 / 16
-
-    max_deflection = 0.04
-    max_weight = 10
-    max_stress = 36000
-
-    moment = length * force
-    I = (width * height ** 3) / 12
-    stress = moment * (height / 2) / I
-    stress_constraint = (stress - max_stress) / max_stress
-
-    deflection = (force * length ** 3) / (3 * modulus * (width * height ** 3) / 12)
-    deflection_constraint = (deflection - max_deflection) / max_deflection
-
-    weight = length * width * height * density
-    weight_constraint = (weight - max_weight) / max_weight
-    return [deflection_constraint, weight_constraint, stress_constraint]
-
-def saturate(val, max_val):
-    if val > max_val:
-        val = max_val
-    return val
-
-if __name__ == "__main__":
-    z = [{'type': 'continuous', 'bounds': (0, 2)},
-         {'type': 'continuous', 'bounds': (0, 2)}]
-    n_gen = 100
-    opt = MultiObjectiveOptimizer(z, calc_fitness2, n_objectives=1, population_size=10, n_generations=n_gen,
-                                  constraint=calc_constraints)
-    # opt.calc_maximin(opt.population)
-    generations = opt.find_min()
-
-    # x_start = generations[0][:, 1]
-    # y_start = generations[0][:, 2]
-    #
-    # x_middle = generations[int(n_gen/2)-1][:, 1]
-    # y_middle = generations[int(n_gen/2)-1][:, 2]
-    #
-    # x_end = generations[-1][:, 1]
-    # y_end = generations[-1][:, 2]
-
-    # plt.plot(x_start, y_start, 'o', label='1st generation')
-    # plt.plot(x_middle, y_middle, 'o', label='middle generation', alpha=0.5)
-    # plt.plot(x_end, y_end, 'o', label='last generation', alpha=0.5)
-    # plt.xlabel('deflection')
-    # plt.ylabel('weight')
-    # plt.title('weight vs. deflection pareto front')
-    # # plt.xlim((0, 0.025))
-    # # plt.ylim((0, 10))
-    # plt.legend()
-    # plt.show()
-
-    plt.ion()
-    for i, generation in enumerate(generations):
-        # if i > 5:
-        #     points.clear()
-        points = plt.plot(generation[:, 1], generation[:, 2], 'o')
-        plt.xlim((0, 0.05))
-        plt.ylim((0, 3))
-        plt.xlabel('deflection')
-        plt.ylabel('weight')
-        plt.title('weight vs. deflection pareto front')
-        # plt.xlim((0, 1))
-        # plt.ylim((0, 1))
-        plt.pause(0.5)
+def sort_array_by_col(array, sort_col=0):
+    """take an array and sort it by the specified column"""
+    new_array = array[np.argsort(array[:, sort_col])]
+    return new_array
 

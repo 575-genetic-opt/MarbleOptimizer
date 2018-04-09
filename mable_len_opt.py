@@ -43,13 +43,14 @@ def plot_progression(generation):
         plt.ylabel('Length')
         # plt.title('Genetic Optimizer Progression')
         # ax.relim()
-        plt.pause(0.1)
+        plt.pause(0.001)
         plt.show()
 
 def check_design(design):
 
     # try:
-    design = design.astype(int)
+    # design = design.astype(int)
+    design = np.int_(design)
     t_length, t_cost, p_list, p_loc, r_list, e_list = solve_track(design)
 
     # length = -calc_length(design)
@@ -60,17 +61,38 @@ def check_design(design):
 
 
 if __name__ == "__main__":
-    # thread = threading.Thread(target=opt_coaster)
-    # thread.start()
-    design_space = []
-    for i in range(10**3):
-        design_space.append({'type': 'integer', 'bounds': (1, 5)})
-        design_space.append({'type': 'integer', 'bounds': (0, 4)})
-    optimizer = MultiObjectiveOptimizer(design_space, check_design, n_generations=2000, population_size=100,
-                                        n_objectives=1, generation_func=plot_progression)
-    opts = optimizer.find_min()
-    print(-np.min(opts[:, 1]))
 
-
+    # design_space = []
+    # for i in range(10**3):
+    #     design_space.append({'type': 'integer', 'bounds': (1, 5)})
+    #     design_space.append({'type': 'integer', 'bounds': (0, 4)})
+    # optimizer = MultiObjectiveOptimizer(design_space, check_design, n_generations=200, population_size=20,
+    #                                     n_objectives=1, generation_func=plot_progression)
+    # opts = optimizer.find_min()
     # np.savetxt('optmimum_coasters.csv', opts, delimiter=',')
-    # plt.savefig("pareto_front.pdf")
+    # print(-np.min(opts[:, 1]))
+
+    genocide_free = []
+    with_genocide = []
+    for test_num in range(30):
+        print(test_num)
+        design_space = []
+        for i in range(10 ** 3):
+            design_space.append({'type': 'integer', 'bounds': (1, 5)})
+            design_space.append({'type': 'integer', 'bounds': (0, 4)})
+        optimizer = MultiObjectiveOptimizer(design_space, check_design, n_generations=300, population_size=20,
+                                            n_objectives=1, use_genocide=False)
+        opts = optimizer.find_min()
+        genocide_free.append(-np.min(opts[:, 1]))
+
+        design_space = []
+        for i in range(10 ** 3):
+            design_space.append({'type': 'integer', 'bounds': (1, 5)})
+            design_space.append({'type': 'integer', 'bounds': (0, 4)})
+        optimizer = MultiObjectiveOptimizer(design_space, check_design, n_generations=300, population_size=20,
+                                            n_objectives=1, use_genocide=True)
+        opts = optimizer.find_min()
+        with_genocide.append(-np.min(opts[:, 1]))
+
+    genocide_vals = np.asarray((genocide_free, with_genocide))
+    np.savetxt("genocideComparison.csv", genocide_vals, delimiter=',')

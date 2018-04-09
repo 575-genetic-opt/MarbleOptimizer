@@ -18,7 +18,7 @@ plt.show()
 
 def plot_front(generation):
     plt.ion()
-    if len(ax.lines) > 4:
+    if len(ax.lines) > 40:
         del ax.lines[0]
     ax.plot(-generation[:, 1], generation[:, 2], 'o')
     plt.xlabel('Length')
@@ -51,7 +51,7 @@ if __name__ == "__main__":
     for i in range(10**3):
         design_space.append({'type': 'integer', 'bounds': (0, 5)})
         design_space.append({'type': 'integer', 'bounds': (0, 4)})
-    optimizer = MultiObjectiveOptimizer(design_space, check_design, n_generations=1000, population_size=20,
+    optimizer = MultiObjectiveOptimizer(design_space, check_design, n_generations=1000, population_size=200,
                                         n_objectives=2, generation_func=plot_front)
     opts = optimizer.find_min()
 
