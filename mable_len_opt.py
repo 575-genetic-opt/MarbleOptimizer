@@ -69,7 +69,7 @@ if __name__ == "__main__":
     for i in range(10**3):
         design_space.append({'type': 'integer', 'bounds': (1, 5)})
         design_space.append({'type': 'integer', 'bounds': (0, 4)})
-    optimizer = MultiObjectiveOptimizer(design_space, check_design, n_generations=2, population_size=1000,
+    optimizer = MultiObjectiveOptimizer(design_space, check_design, n_generations=2, population_size=20,
                                         n_objectives=1, generation_func=plot_progression, use_genocide=True)
     opts = optimizer.find_min()
     # np.savetxt('optmimum_coasters.csv', opts, delimiter=',')

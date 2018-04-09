@@ -20,13 +20,6 @@ class ButtonPanel(wx.Panel):
         wx.Panel.__init__(self, parent, -1)
 
         box = wx.BoxSizer(wx.VERTICAL)
-        box2 = wx.BoxSizer(wx.HORIZONTAL)
-        box3 = wx.BoxSizer(wx.VERTICAL)
-        box3_5 = wx.BoxSizer(wx.VERTICAL)
-        box4 = wx.BoxSizer(wx.HORIZONTAL)
-        box5 = wx.BoxSizer(wx.HORIZONTAL)
-        box6 = wx.BoxSizer(wx.HORIZONTAL)
-        box7 = wx.BoxSizer(wx.HORIZONTAL)
 
         # btn_draw = wx.Button(self, 10, "Sync'd Draw")
         # btn_draw = wx.ToggleButton(self, 10, "Sync'd Draw")
@@ -38,16 +31,9 @@ class ButtonPanel(wx.Panel):
         if 1:
             self.context1 = visualizer.Model1Canvas(self)
             self.context1.SetMinSize((400, 400))
-            box4.Add(self.context1, 0, wx.ALIGN_LEFT | wx.ALL, 5)
+            box.Add(self.context1, 3, wx.ALL | wx.BOTTOM | wx.GROW, 5)
 
-        # add subboxes to boxes
-        box.Add(box2, 0, wx.ALIGN_CENTER | wx.TOP, 5)
-        box.Add(box5, 0, wx.ALIGN_CENTER | wx.TOP, 5)
-        box2.Add(box3, 0, wx.ALIGN_LEFT | wx.RIGHT, 5)
-        box2.Add(box3_5, 0, wx.ALIGN_LEFT | wx.ALL, 2)
-        box2.Add(box4, 0, wx.ALIGN_RIGHT | wx.LEFT, 5)
-        box5.Add(box6, 0, wx.ALIGN_LEFT | wx.RIGHT, 15)
-        box5.Add(box7, 0, wx.ALIGN_RIGHT | wx.LEFT, 15)
+
         self.SetAutoLayout(True)
         self.SetSizer(box)
 
