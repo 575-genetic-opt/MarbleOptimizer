@@ -66,11 +66,11 @@ def check_design(design):
 if __name__ == "__main__":
 
     design_space = []
-    for i in range(10**3):
+    for i in range(5**3):
         design_space.append({'type': 'integer', 'bounds': (1, 5)})
         design_space.append({'type': 'integer', 'bounds': (0, 4)})
-    optimizer = MultiObjectiveOptimizer(design_space, check_design, n_generations=2, population_size=1000,
-                                        n_objectives=1, generation_func=plot_progression, use_genocide=True)
+    optimizer = MultiObjectiveOptimizer(design_space, check_design, n_generations=500, population_size=500,
+                                        n_objectives=1, generation_func=plot_progression, use_genocide=False)
     opts = optimizer.find_min()
     # np.savetxt('optmimum_coasters.csv', opts, delimiter=',')
     print(-np.min(opts[:, 1]))

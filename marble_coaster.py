@@ -10,9 +10,9 @@ gene_per_section = 2
 maximum_length = 0
 corresponding_cost = 0
 
-num_div_x = 10           # NUMBER OF COLUMNS
-num_div_y = 10           # NUMBER OF ROWS
-num_div_z = 10           # NUMBER OF FLOORS
+num_div_x = 5           # NUMBER OF COLUMNS
+num_div_y = 5           # NUMBER OF ROWS
+num_div_z = 5           # NUMBER OF FLOORS
 
 dz = .1                  # HEIGHT OF PIECES (METERS)
 dx = .1                  # X LENGTH OF PIECES (METERS)
@@ -24,11 +24,11 @@ mass = 0.00127           # MASS OF A MARBLE (KG)
 lpl = .01                # percent of energy lost due to normal track use
 g = 9.81                 # GRAVITY (M/S^2)
 
-parts = [{'cost': 1., 'length': dz, 'loss': lpl*dz, 'cool': 90, 'e1': 'top', 'e2': 'bottom'},
-         {'cost': 3., 'length': (dz/2 + dy/2)*.8, 'loss': lpl*(dz/2 + dy/2)*.8, 'cool': 50, 'e1': 'top', 'e2': 1},
-         {'cost': 1., 'length': dy, 'loss': lpl*dy, 'cool': 70, 'e1': 1, 'e2': 3},
-         {'cost': 3., 'length': (dy/2 + dx/2)*.8, 'loss': lpl*(dy/2 + dx/2)*.8, 'cool': 50, 'e1': 1, 'e2': 4},
-         {'cost': 3., 'length': (dy/2 + dz/2)*.8, 'loss': lpl*(dy/2 + dx/2)*.8, 'cool': 50, 'e1': 1, 'e2': 'bottom'}]
+parts = [{'cost': 1., 'length': dz, 'loss': lpl*dz, 'cool': 90, 'e1': 'top', 'e2': 'bottom'}, #vertical
+         {'cost': 3., 'length': (dz/2 + dy/2)*0.8, 'loss': lpl*(dz/2 + dy/2)*.8, 'cool': 50, 'e1': 'top', 'e2': 1}, #top to side
+         {'cost': 1., 'length': dy, 'loss': lpl*dy, 'cool': 70, 'e1': 1, 'e2': 3},  # horizontal
+         {'cost': 3., 'length': (dy/2 + dx/2)*.8, 'loss': lpl*(dy/2 + dx/2)*.8, 'cool': 50, 'e1': 1, 'e2': 4}, #side turn
+         {'cost': 3., 'length': (dy/2 + dz/2)*0.8, 'loss': lpl*(dy/2 + dx/2)*.8, 'cool': 50, 'e1': 1, 'e2': 'bottom'}] # side to bottom
 
 
 def calc_length(design):

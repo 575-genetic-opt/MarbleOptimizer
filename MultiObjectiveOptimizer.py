@@ -70,8 +70,8 @@ class MultiObjectiveOptimizer:
         return
 
     def generate_population(self):
-        # initialize population array
-        # stored in the form ([fitness, objective values, x1, x2, x3, ..., xn])
+        """initialize population array
+        stored in the form ([fitness, objective values, x1, x2, x3, ..., xn])"""
         population = np.zeros((self.num_population, self.num_x + self.num_objectives + 1))
         for i in range(self.num_population):
             x_new = np.zeros(self.num_x)
@@ -135,7 +135,7 @@ class MultiObjectiveOptimizer:
             self.no_diversity_counter += 1
             if self.no_diversity_counter > 20:
                 self.no_diversity_counter = 0
-                num_to_save = int(self.num_population * 0.2)
+                num_to_save = int(self.num_population * 0.001)
                 # sort the designs
                 population = sort_array_by_col(population, 0)
                 # save the best 10% of designs
@@ -303,7 +303,8 @@ class MultiObjectiveOptimizer:
         min = bounds[0]
         max = bounds[1]
         if type == 'integer':
-            child[idx] = np.random.randint(min, max+1)
+            new_val = np.random.randint(min, max+1)
+            child[idx] = new_val
         else:
             child[idx] = np.random.uniform(min, max+0.000001)
         return child
