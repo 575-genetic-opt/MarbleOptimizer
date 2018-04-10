@@ -16,8 +16,8 @@ min_lengths = []
 length_range = []
 fig = plt.figure(1)
 # fig = plt.figure(2)
-ax = fig.add_subplot(211)
-ax2 = fig.add_subplot(212)
+ax = fig.add_subplot(111)
+# ax2 = fig.add_subplot(212)
 # ax2 = fig.add_subplot(122)
 ax.autoscale_view(True, True, True)
 # ax2.autoscale_view(True, True, True)
@@ -34,16 +34,18 @@ def plot_progression(generation):
     length_range.append(max_len - min_len)
     if len(max_lengths) % 1 == 0:
         ax.clear()
-        ax2.clear()
+        # ax2.clear()
         ax.plot(range(len(max_lengths)), max_lengths, 'b', label='max length')
-        ax.plot(range(len(min_lengths)), min_lengths, 'r', label='min length')
-        ax2.plot(range(len(length_range)), length_range, 'g', label='length range')
-        ax.legend()
-        ax2.legend()
+        # ax.plot(range(len(min_lengths)), min_lengths, 'r', label='min length')
+        # ax2.plot(range(len(length_range)), length_range, 'g', label='length range')
+        # ax.legend()
+        # ax2.legend()
         # ax.plot(generation[:, 1], generation[:, 2], 'o')
         # ax.set_xlabel('Generation')
-        ax2.set_xlabel('Generation')
+        # ax2.set_xlabel('Generation')
         plt.ylabel('Length')
+        plt.xlabel('Generation')
+        plt.title('Maximum population length vs Generation number')
         # plt.title('Genetic Optimizer Progression')
         # ax.relim()
         plt.pause(0.001)
@@ -69,10 +71,10 @@ if __name__ == "__main__":
     for i in range(10**3):
         design_space.append({'type': 'integer', 'bounds': (1, 5)})
         design_space.append({'type': 'integer', 'bounds': (0, 4)})
-    optimizer = MultiObjectiveOptimizer(design_space, check_design, n_generations=2, population_size=20,
+    optimizer = MultiObjectiveOptimizer(design_space, check_design, n_generations=1, population_size=500,
                                         n_objectives=1, generation_func=plot_progression, use_genocide=True)
     opts = optimizer.find_min()
-    np.savetxt('optmimum_coasters.csv', opts, delimiter=',')
+    # np.savetxt('optmimum_coasters.csv', opts, delimiter=',')
     print(-np.min(opts[:, 1]))
     opts = sort_array_by_col(opts, 1)
     best_design = opts[0, 2:]

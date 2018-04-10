@@ -471,10 +471,10 @@ class Model1Canvas(MyCanvasBase):
         glLoadIdentity()
         gluLookAt(0.0, 0.0, 10.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0)  # initial point we look at (eye coords, center, up dir)
 
-        # CENTERPOINT MARKER
-        glPushMatrix()
-        self.CenterpointMarker()
-        glPopMatrix()
+        # # CENTERPOINT MARKER
+        # glPushMatrix()
+        # self.CenterpointMarker()
+        # glPopMatrix()
 
         # Apply initial transformations
         glTranslatef(xPos, yPos, 0.0)   # this translate is for panning (the last transformation OpenGL will perform (besides the gluLookAt)
